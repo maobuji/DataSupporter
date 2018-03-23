@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<project name="GET-TOOL" default="getSelenium" basedir=".">
+    <target name="SHOWMESSAGE">
+        <echo message="获取工程所需要的工具" />
+    </target>
+
+    <target name="getSelenium">
+        <delete dir="${basedir}/selenium" />
+        <mkdir dir="${basedir}/selenium" />
+        <get src="https://chromedriver.storage.googleapis.com/2.37/chromedriver_win32.zip" dest="${basedir}/selenium/chromedriver_win32.zip" usetimestamp="true" />
+        <unzip src="${basedir}/selenium/chromedriver_win32.zip" dest="${basedir}/selenium/" />
+        <delete file="${basedir}/selenium/chromedriver_win32.zip" />
+
+        <get src="https://chromedriver.storage.googleapis.com/2.37/chromedriver_linux64.zip" dest="${basedir}/selenium/chromedriver_linux64.zip" usetimestamp="true" />
+        <unzip src="${basedir}/selenium/chromedriver_linux64.zip" dest="${basedir}/selenium/" />
+        <delete file="${basedir}/selenium/chromedriver_linux64.zip" />
+
+    </target>
+
+</project>
