@@ -13,6 +13,13 @@ public class Demo1 {
      */
     public static void main(String[] args) {
 
+        String rareDegree="rareDegree"; // 稀有度
+        String generation="generation"; // 第几代
+        String coolingInterval="coolingInterval"; // 繁育时间
+        String name="name"; // 狗编号
+        String price="price"; // 价格
+
+
         // TODO Auto-generated method stub  
         //如果测试的浏览器没有安装在默认目录，那么必须在程序中设置   
         //bug1:System.setProperty("webdriver.chrome.driver", "C://Program Files (x86)//Google//Chrome//Application//chrome.exe");  
@@ -20,17 +27,35 @@ public class Demo1 {
         System.setProperty("webdriver.chrome.driver", "tool-repository/selenium/chromedriver.exe");
         WebDriver driver = new ChromeDriver();
 
-        // "https://pet-chain.baidu.com/chain/detail?channel=market&petId=1982448327069267353&validCode=&appId=1&tpl="
-        long number=1982448327069267353L;
+        long number=1952865279528009022L;
         for(int i=0;i<1000;i++) {
-
+            String url="https://pet-chain.baidu.com/chain/detail?channel=market&petId=" + (number++) + "&validCode=&appId=1&tpl=";
             try {
-                driver.get("https://pet-chain.baidu.com/chain/detail?channel=market&petId=" + (number++) + "&validCode=&appId=1&tpl=");
-                WebElement webElement = driver.findElement(By.ByClassName.className("price"));
+                driver.get(url);
+                WebElement webElement = null;
 
-                Thread.sleep(10);
+                webElement = driver.findElement(By.ByClassName.className(rareDegree));
                 System.out.println(webElement.getText());
+
+
+
+                webElement = driver.findElement(By.ByClassName.className(generation));
+                System.out.println(webElement.getText());
+
+                webElement = driver.findElement(By.ByClassName.className(coolingInterval));
+                System.out.println(webElement.getText());
+
+                webElement = driver.findElement(By.ByClassName.className(name));
+                System.out.println(webElement.getText());
+
+                webElement = driver.findElement(By.ByClassName.className(price));
+                System.out.println(webElement.getText());
+
+                System.out.println("_______________________________");
+
             }catch (Exception ex){
+
+                //ex.printStackTrace();
 
             }
         }
