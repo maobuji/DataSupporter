@@ -1,33 +1,58 @@
 package petchain.baidu.com.domain;
 
+import org.springframework.data.annotation.LastModifiedDate;
+
+import javax.persistence.*;
 import java.math.BigDecimal;
+import java.util.Date;
 
 /**
  * Created by Administrator on 2018/3/26.
  */
+@Entity
+@javax.persistence.Table(name = "t_petinfo")
 public class PetInfo {
 
     // 主键编号
+    @Id
     private long id;
 
     // 名称（狗编号）
+    @Column(length = 20)
     private String name;
 
     // 稀有度
+    @Column(length = 10)
     private String rareDegree;
 
     // 代数
+    @Column(length = 10)
     private String generation;
 
     // 休息时间
+    @Column(length = 10)
     private String coolingInterval;
 
-    // 价格
+    // 出售价格
     private BigDecimal price;
+
+    @Column(length = 10)
+    private String fanyuState;
+
+
+
+    // 繁育价格
+    private BigDecimal fanyuPrice;
 
 
     // 所有者
+    @Column(length = 50)
     private String owner;
+
+    // 获取时间
+    @Temporal(TemporalType.TIMESTAMP)
+    @LastModifiedDate
+    private Date updateTime=new Date();
 
     public long getId() {
         return id;
@@ -36,6 +61,7 @@ public class PetInfo {
     public void setId(long id) {
         this.id = id;
     }
+
 
     public String getName() {
         return name;
@@ -87,27 +113,35 @@ public class PetInfo {
     }
 
     // 属性-体型
+    @Column(length = 20)
     private String attTiXing;
 
     // 属性-花纹
+    @Column(length = 20)
     private String attHuaWen;
 
     // 属性-眼睛
+    @Column(length = 20)
     private String attYanJing;
 
     // 属性-眼睛色
+    @Column(length = 20)
     private String attYanJingSe;
 
     // 属性-嘴巴
+    @Column(length = 20)
     private String attZuiBa;
 
     // 属性-肚皮色
+    @Column(length = 20)
     private String attDuPiSe;
 
     // 属性-身体色
+    @Column(length = 20)
     private String attShenTiSe;
 
     // 属性-花纹色
+    @Column(length = 20)
     private String attHuaWenSe;
 
     public String getAttTiXing() {
@@ -172,6 +206,30 @@ public class PetInfo {
 
     public void setAttHuaWenSe(String attHuaWenSe) {
         this.attHuaWenSe = attHuaWenSe;
+    }
+
+    public Date getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(Date updateTime) {
+        this.updateTime = updateTime;
+    }
+
+    public String getFanyuState() {
+        return fanyuState;
+    }
+
+    public void setFanyuState(String fanyuState) {
+        this.fanyuState = fanyuState;
+    }
+
+    public BigDecimal getFanyuPrice() {
+        return fanyuPrice;
+    }
+
+    public void setFanyuPrice(BigDecimal fanyuPrice) {
+        this.fanyuPrice = fanyuPrice;
     }
 
     public String getAttList() {

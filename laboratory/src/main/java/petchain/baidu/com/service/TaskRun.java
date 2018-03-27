@@ -1,3 +1,4 @@
+package petchain.baidu.com.service;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.NoSuchElementException;
@@ -6,31 +7,47 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.stereotype.Component;
 import petchain.baidu.com.domain.PetInfo;
+import petchain.baidu.com.repository.PetInfoRepository;
 import petchain.baidu.com.util.PetchainIDUtil;
 
-import java.io.File;
 import java.math.BigDecimal;
-import java.util.List;
 
-public class Demo1 {
+/**
+ * Created by Administrator on 2018/3/27.
+ */
+@Component
+public class TaskRun implements ApplicationContextAware, InitializingBean, DisposableBean {
 
-    private static Logger logger = LoggerFactory.getLogger(Demo1.class);
+    private static Logger logger = LoggerFactory.getLogger(TaskRun.class);
 
-    /**
-     * @param args
-     */
-    public static void main(String[] args) {
+    private ApplicationContext applicationContext;
 
-        // TODO Auto-generated method stub  
-        //如果测试的浏览器没有安装在默认目录，那么必须在程序中设置   
-        //bug1:System.setProperty("webdriver.chrome.driver", "C://Program Files (x86)//Google//Chrome//Application//chrome.exe");  
-        //bug2:System.setProperty("webdriver.chrome.driver", "C://Users//Yoga//Downloads//chromedriver_win32//chromedriver.exe");  
+    @Autowired
+    private PetInfoRepository petInfoRepository;
+
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext = applicationContext;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+
         System.setProperty("webdriver.chrome.driver", "tool-repository/selenium/chromedriver.exe");
         WebDriver driver = new ChromeDriver();
-        for (int i = 0; i < 1000; i++) {
+        while (true) {
             long ID = PetchainIDUtil.getID();
             PetInfo petInfo = fillPetInfo(driver, ID);
+
             if (petInfo.getName() != null) {
                 logger.info("----------------------------------------");
                 logger.info("ID:" + petInfo.getId());
@@ -39,19 +56,17 @@ public class Demo1 {
                 logger.info("代数：" + petInfo.getGeneration());
                 logger.info("冷却时间：" + petInfo.getCoolingInterval());
                 logger.info("所有者：" + petInfo.getOwner());
+                logger.info("繁育：" + petInfo.getFanyuState());
                 logger.info(petInfo.getAttList());
                 if (petInfo.getPrice() != null) {
                     logger.info("价格:" + petInfo.getPrice());
                 }
-                logger.info("----------------------------------------");
-
-
+                petInfoRepository.save(petInfo);
+            }else{
+                logger.info("ID="+ID);
             }
-
         }
-        driver.quit();
-    }
-
+}
 
     private static PetInfo fillPetInfo(WebDriver driver, long ID) {
         String url = "https://pet-chain.baidu.com/chain/detail?channel=market&petId=" + ID + "&validCode=&appId=1&tpl=";
@@ -74,6 +89,41 @@ public class Demo1 {
             return petInfo;
         } catch (Exception ex) {
             logger.error("没有找到宠物名字,ID=" + ID, ex);
+            return petInfo;
+        }
+
+        try {
+//          WebElement webElement = driver.findElements(By.ByClassName.className("price"));
+            WebElement webElement = driver.findElement(By.xpath("/html/body/div/section/div[2]/span[1]"));
+            String sPrice=webElement.getText();
+            petInfo.setPrice(new BigDecimal(sPrice.replaceAll("微","")));
+        } catch (NoSuchElementException e) {
+
+        } catch (Exception ex) {
+            logger.error("没有找到宠物价格,ID=" + ID, ex);
+            return petInfo;
+        }
+
+        try {
+            WebElement webElement = driver.findElement(By.xpath("/html/body/div/section/div[2]/span[2]"));
+            petInfo.setFanyuState(webElement.getText());
+        } catch (NoSuchElementException e) {
+
+        } catch (Exception ex) {
+            logger.error("没有找到宠物繁育状态,ID=" + ID, ex);
+            return petInfo;
+        }
+
+
+        try {
+//          WebElement webElement = driver.findElements(By.ByClassName.className("price"));
+            WebElement webElement = driver.findElement(By.xpath("/html/body/div/section/div[2]/span[1]"));
+            String sPrice=webElement.getText();
+            petInfo.setPrice(new BigDecimal(sPrice.replaceAll("微","")));
+        } catch (NoSuchElementException e) {
+
+        } catch (Exception ex) {
+            logger.error("没有找到宠物价格,ID=" + ID, ex);
             return petInfo;
         }
 
@@ -150,10 +200,40 @@ public class Demo1 {
                         break;
 
                     default:
-                        logger.error("对应的属性没有找到："+singleAtt[0]);
+                        logger.error("对应的属性没有找到：" + singleAtt[0]);
                         break;
                 }
             }
+
+
+            url = "https://pet-chain.baidu.com/chain/detail?channel=breed&petId=" + ID + "&validCode=&appId=1&tpl=";
+            driver.get(url);
+            try {
+                Thread.sleep(100);
+            } catch (Exception ex) {
+            }
+
+            try {
+                webElement = driver.findElement(By.xpath("/html/body/div/section/div[2]/span[1]"));
+                String sPrice=webElement.getText();
+                petInfo.setFanyuPrice(new BigDecimal(sPrice.replaceAll("微","")));
+            } catch (NoSuchElementException e) {
+
+            } catch (Exception ex) {
+                logger.error("没有找到宠物繁育价格,ID=" + ID, ex);
+                return petInfo;
+            }
+
+            try {
+                webElement = driver.findElement(By.xpath("/html/body/div/section/div[2]/span[2]"));
+                petInfo.setFanyuState(webElement.getText());
+            } catch (NoSuchElementException e) {
+
+            } catch (Exception ex) {
+                logger.error("没有找到宠物繁育状态,ID=" + ID, ex);
+                return petInfo;
+            }
+
 
 
         } catch (NoSuchElementException e) {
@@ -167,5 +247,8 @@ public class Demo1 {
         return petInfo;
     }
 
+    @Override
+    public void destroy() throws Exception {
 
+    }
 }
