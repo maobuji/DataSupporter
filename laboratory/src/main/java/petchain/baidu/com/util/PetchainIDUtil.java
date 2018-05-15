@@ -5,7 +5,7 @@ package petchain.baidu.com.util;
  */
 public class PetchainIDUtil {
 //     private static volatile  long startID=1882330749610185102L;
-    private static volatile  long startID=1941254745975907315L;
+    private static volatile  long startID=1997628425121158679L;
     public synchronized  static long getID(){
          return startID++;
     }

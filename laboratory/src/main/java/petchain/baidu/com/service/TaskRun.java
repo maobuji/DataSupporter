@@ -94,7 +94,11 @@ public class TaskRun implements ApplicationContextAware, InitializingBean, Dispo
 
         try {
 //          WebElement webElement = driver.findElements(By.ByClassName.className("price"));
+
             WebElement webElement = driver.findElement(By.xpath("/html/body/div/section/div[2]/span[1]"));
+
+
+
             String sPrice=webElement.getText();
             petInfo.setPrice(new BigDecimal(sPrice.replaceAll("微","")));
         } catch (NoSuchElementException e) {
