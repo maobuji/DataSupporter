@@ -26,10 +26,64 @@ public class HouseInfo {
     private String communityId;
 
     // 链接地址
-    @Column(length = 32)
+    @Column(length = 100)
     private String url;
 
     // 说明
     @Column(length = 100)
     private String sellTitle;
+
+    // 总价
+    private int price;
+
+    // 单价
+    private int unitPrice;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getCommunityId() {
+        return communityId;
+    }
+
+    public void setCommunityId(String communityId) {
+        this.communityId = communityId;
+    }
+
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
+    public String getSellTitle() {
+        return sellTitle;
+    }
+
+    public void setSellTitle(String sellTitle) {
+        this.sellTitle = sellTitle;
+    }
+
+    public int getPrice() {
+        return price;
+    }
+
+    public void setPrice(int price) {
+        this.price = price;
+    }
+
+    public int getUnitPrice() {
+        return unitPrice;
+    }
+
+    public void setUnitPrice(int unitPrice) {
+        this.unitPrice = unitPrice;
+    }
 }
