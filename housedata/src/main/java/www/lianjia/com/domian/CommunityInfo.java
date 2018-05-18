@@ -21,8 +21,13 @@ public class CommunityInfo {
     @Column(length = 32)
     private String id;
 
+    // 小区名
     @Column(length = 10)
     private String name;
+
+    // 强制刷新标志，0不刷新、1刷新小区信息、2刷新小区和其下所有房屋信息
+    public int forceFlush=3;
+
 
     public String getId() {
         return id;
@@ -39,4 +44,16 @@ public class CommunityInfo {
     public void setName(String name) {
         this.name = name;
     }
+
+    public int getForceFlush() {
+        return forceFlush;
+    }
+
+    public void setForceFlush(int forceFlush) {
+        this.forceFlush = forceFlush;
+    }
+
+
+
+
 }
