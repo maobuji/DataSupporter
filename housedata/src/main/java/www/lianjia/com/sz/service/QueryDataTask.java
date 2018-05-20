@@ -18,6 +18,9 @@ import www.lianjia.com.repository.CommunityInfoRepository;
 import www.lianjia.com.repository.HouseInfoRepository;
 import www.lianjia.com.util.WebDrivereUtil;
 
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -68,12 +71,11 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
         for (CommunityInfo communityInfo : ls) {
             flushCommunityInfo(communityInfo);
             communityInfo.setForceFlush(0);
-            communityInfo.setFlushTime(new Date());
             communityInfoRepository.save(communityInfo);
         }
 
         if (ls.size() == 0) {
-            Thread.sleep(3000);
+            Thread.sleep(5000);
         }
     }
 
@@ -85,15 +87,19 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
         }
     }
 
+    private static long DRIVER_GET_WAIT_TIME = 1000;
+
 
     private void flushCommunityInfo(CommunityInfo communityInfo) {
         String url = "https://sz.lianjia.com/ershoufang/rs" + communityInfo.getName() + "/";
         WebDriver driver = WebDrivereUtil.getWebDrivere();
         driver.get(url);
-        sleep(100);
+        sleep(DRIVER_GET_WAIT_TIME);
 
 
         // 获取小区总体说明
+        communityInfo.setCity("深圳");
+        communityInfo.setFlushTime(new Date());
 
         // 小区名
         String name = driver.findElement(By.className("agentCardResblockTitle")).getText();
@@ -105,16 +111,18 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
         flushGeneralInfo(communityInfo, driver);
         System.out.println("小区：" + communityInfo.getName() + " 在售数量" + communityInfo.getOnSellCount() + "**************");
 
-
-        if (communityInfo.getForceFlush() != 0 && communityInfo.getForceFlush() != 1) {
-            // 获取小区的销售明细
-            flushSellInfo(communityInfo, driver);
-        }
-
         // 获取推荐小区
         flushRecommendInfo(communityInfo, driver);
 
+        // 获取小区在售房源
+        if (communityInfo.getForceFlush() != 0 && communityInfo.getForceFlush() != 1) {
+            flushSellInfo(communityInfo, driver);
+        }
+
+        // 获取小区详细信息
         flushGeneralDetail(communityInfo, driver);
+
+
     }
 
     private void flushGeneralDetail(CommunityInfo communityInfo, WebDriver driver) {
@@ -122,7 +130,16 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
             return;
         }
         driver.get(communityInfo.getUrl());
-        sleep(100);
+        sleep(DRIVER_GET_WAIT_TIME);
+
+        String address = driver.findElement(By.xpath("/html/body/div[4]/div/div[1]/div")).getText();
+        String disrict = address.substring(1, address.indexOf("区") + 1);
+        communityInfo.setDisrict(disrict);
+        String section = address.substring(address.indexOf("区") + 1, address.indexOf(")"));
+        communityInfo.setSection(section);
+        String site = address.substring(address.indexOf(")") + 1, address.length());
+        communityInfo.setSite(site);
+
 
         // 建筑年代:2007年建成
         String buildYearTemp = driver.findElement(By.xpath("/html/body/div[6]/div[2]/div[2]/div[1]/span[2]")).getText();
@@ -158,6 +175,7 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
             String title = recommendElement.findElement(By.xpath("div[1]/div[1]/a")).getText();
             System.out.println(title);
 
+            // 分解出小区名
             String tags = recommendElement.findElement(By.xpath("div[1]/div[2]/div")).getText();
             String[] tag = tags.split("/");
             String cName = tag[0].trim();
@@ -173,14 +191,34 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
         }
     }
 
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+
     private void flushSellInfo(CommunityInfo communityInfo, WebDriver driver) {
         // 在售列表
         List<WebElement> communityOnSells = driver.findElements(By.xpath("/html/body/div[4]/div[1]/ul/li"));
+        System.out.println("在售条数：" + communityOnSells.size());
+
+        List<HouseInfo> waitFlushHouseInfos = new ArrayList<HouseInfo>();
+
         for (WebElement singleOnSellElement : communityOnSells) {
             // 链接地址：https://sz.lianjia.com/ershoufang/105100063278.html
             HouseInfo houseInfo = null;
             String url = "";
+
             try {
+                String name = singleOnSellElement.findElement(By.xpath("div[1]/div[2]/div/a")).getText();
+                if (!communityInfo.getName().equals(name)) {
+                    // 如果小区不存在，则将小区加入到查询列表中
+                    CommunityInfo newCommunityInfo = communityInfoRepository.findByName(name);
+                    if (newCommunityInfo == null) {
+                        newCommunityInfo = new CommunityInfo();
+                        newCommunityInfo.setName(name);
+                        newCommunityInfo.setForceFlush(3);
+                        communityInfoRepository.save(newCommunityInfo);
+                    }
+                    continue;
+                }
+
                 url = singleOnSellElement.findElement(By.xpath("div[1]/div[1]/a")).getAttribute("href");
                 houseInfo = houseInfoRepository.findByUrl(url);
             } catch (Exception ex) {
@@ -189,11 +227,11 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
 
             if (houseInfo == null) {
                 houseInfo = new HouseInfo();
+                houseInfo.setCommunityName(communityInfo.getName());
+                houseInfo.setFlushTime(communityInfo.getFlushTime());
                 houseInfo.setUrl(url);
-            } else {
-                continue;
             }
-
+            waitFlushHouseInfos.add(houseInfo);
 
             // 描述信息：恒星园4房，一手业主红本手 观小区花园 视野开阔
             try {
@@ -212,30 +250,154 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
             } catch (Exception ex) {
 
             }
-            // 房产tag ：恒星园 | 4室2厅 | 129.86平米 | 西南 | 精装 | 有电梯
-            singleOnSellElement.findElement(By.xpath("div[1]/div[2]/div")).getText();
-            // 房产类型：低楼层(共18层)1999年建板塔结合 - 香蜜湖
-            singleOnSellElement.findElement(By.xpath("div[1]/div[3]/div")).getText();
-            // 房产信息：99人关注 / 共30次带看 / 一年前发布
-            singleOnSellElement.findElement(By.xpath("div[1]/div[4]")).getText();
 
-            // 特点：距离7号线农林站313米 房本满五年
-            List<WebElement> tedianWebElements = singleOnSellElement.findElements(By.xpath("div[1]/div[5]/span"));
-            for (WebElement tedianWebElement : tedianWebElements) {
-
+            // 如果小区链接没有拿到，在这里再尝试拿一次
+            if (communityInfo.getUrl().equals("")) {
+                if (communityInfo.getName().equals(singleOnSellElement.findElement(By.xpath("div[1]/div[2]/div/a")).getText())) {
+                    communityInfo.setUrl(singleOnSellElement.findElement(By.xpath("div[1]/div[2]/div/a")).getAttribute("href"));
+                }
             }
 
             // 价格（万）：1000
             String price = singleOnSellElement.findElement(By.xpath("div[1]/div[6]/div[1]/span")).getText();
-            houseInfo.setPrice(Integer.valueOf(price));
+            houseInfo.setPrice(new BigDecimal(transNull2Zero(price)));
             // 单价
             String unitPrice = singleOnSellElement.findElement(By.xpath("div[1]/div[6]/div[2]/span")).getText();
             unitPrice = unitPrice.replaceAll("元/平米", "").replaceAll("单价", "");
-            houseInfo.setUnitPrice(Integer.valueOf(unitPrice));
+            houseInfo.setUnitPrice(new BigDecimal(transNull2Zero(unitPrice)));
 
             houseInfo.setCommunityId(communityInfo.getId());
-            houseInfoRepository.save(houseInfo);
         }
+
+        for (HouseInfo houseInfo : waitFlushHouseInfos) {
+            driver.get(houseInfo.getUrl());
+            sleep(DRIVER_GET_WAIT_TIME);
+
+            // 基本信息
+            List<WebElement> webElements = driver.findElements(By.xpath("//*[@id=\"introduction\"]/div/div/div[1]/div[2]/ul/li"));
+            for (WebElement webElement : webElements) {
+                String text = webElement.getText();
+                String textValue = text.substring(4, text.length()).trim();
+
+                // 房屋类型
+                if (text.startsWith("房屋户型")) {
+                    houseInfo.setLayout(textValue);
+                    continue;
+                }
+
+                // 户型结构：平层
+                if (text.startsWith("户型结构")) {
+                    houseInfo.setStruct(textValue);
+                    continue;
+                }
+
+                // 建筑面积：221.07㎡
+                if (text.startsWith("建筑面积")) {
+                    String area = textValue.replaceAll("㎡", "").replaceAll("平米", "");
+                    houseInfo.setArea(new BigDecimal(area));
+                    continue;
+                }
+
+                // 房屋朝向：南
+                if (text.startsWith("房屋朝向")) {
+                    houseInfo.setOrientation(textValue);
+                    continue;
+                }
+
+                // 套内面积：184.92㎡
+                // 建筑类型：塔楼
+                // 建筑结构：钢混结构
+
+                // 装修情况：毛坯
+                if (text.startsWith("装修情况")) {
+                    houseInfo.setDecoration(textValue);
+                    continue;
+                }
+
+                // 梯户比例：两梯四户
+                if (text.startsWith("梯户比例")) {
+                    houseInfo.setElevatorRate(textValue);
+                    continue;
+                }
+
+                // 配备电梯：有
+                if (text.startsWith("配备电梯")) {
+                    houseInfo.setElevator(textValue);
+                    continue;
+                }
+
+                // 产权年限：70年
+                if (text.startsWith("产权年限")) {
+                    try {
+                        String landYear = textValue.replaceAll("年", "");
+                        houseInfo.setLandYear(Integer.valueOf(landYear));
+                    } catch (Exception ex) {
+
+                    }
+                    continue;
+                }
+            }
+
+
+            // 交易信息
+            webElements = driver.findElements(By.xpath("//*[@id=\"introduction\"]/div/div/div[2]/div[2]/ul/li"));
+            for (WebElement webElement : webElements) {
+                String text = webElement.getText();
+                String textValue = text.substring(4, text.length()).trim();
+
+                // 挂牌时间:2017-02-21
+                if (text.startsWith("挂牌时间")) {
+                    try {
+                        houseInfo.setSubmitDay(sdf.parse(textValue));
+                    } catch (Exception ex) {
+
+                    }
+                    continue;
+                }
+
+                // 上次交易:2009-08-03
+                if (text.startsWith("上次交易")) {
+                    try {
+                        houseInfo.setLastSelledDay(sdf.parse(textValue));
+                    } catch (Exception ex) {
+
+                    }
+                    continue;
+                }
+
+                // 交易权属:商品房
+                if (text.startsWith("交易权属")) {
+                    houseInfo.setSellType(textValue);
+                    continue;
+                }
+
+                // 房屋用途:普通住宅
+                if (text.startsWith("房屋用途")) {
+                    houseInfo.setUseType(textValue);
+                    continue;
+                }
+
+                // 产权所属:非共有
+                if (text.startsWith("产权所属")) {
+                    houseInfo.setRightType(textValue);
+                    continue;
+                }
+
+                // 抵押信息:有抵押
+                if (text.startsWith("抵押信息")) {
+                    houseInfo.setMortgage(textValue);
+                    continue;
+                }
+
+                // 房屋年限:满五年
+                // 房本备件:已上传房本照片
+                // 房源编码:170343231614
+            }
+        }
+
+        houseInfoRepository.saveAll(waitFlushHouseInfos);
+
+
     }
 
     private void flushGeneralInfo(CommunityInfo communityInfo, WebDriver driver) {
@@ -244,8 +406,14 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
         communityInfo.setUrl(urlTemp);
 
         // 小区平均价格:121746元/平米
-        String averagePriceTemp = driver.findElement(By.xpath("//*[@id=\"sem_card\"]/div/div[2]/div[2]/div[1]/a")).getText();
-        communityInfo.setAveragePrice(Integer.valueOf(averagePriceTemp.replaceAll("元/平米", "")));
+        String averagePriceTemp;
+        try {
+            averagePriceTemp = driver.findElement(By.xpath("//*[@id=\"sem_card\"]/div/div[2]/div[2]/div[1]/a")).getText();
+        } catch (Exception ex) {
+            averagePriceTemp = driver.findElement(By.xpath("//*[@id=\"sem_card\"]/div/div[2]/div[2]/div[1]/span")).getText();
+        }
+        averagePriceTemp = averagePriceTemp.replaceAll("元/平米", "");
+        communityInfo.setAveragePrice(new BigDecimal(transNull2Zero(averagePriceTemp)));
 
         // 在售数量:23套
         String onSellCountTemp = driver.findElement(By.xpath("//*[@id=\"sem_card\"]/div/div[2]/div[2]/div[2]/div[2]")).getText();
@@ -253,7 +421,12 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
         communityInfo.setOnSellCount(Integer.valueOf(transNull2Zero(onSellCountTemp)));
 
         // 90天成交:5套
-        String day90SelledTemp = driver.findElement(By.xpath("//*[@id=\"sem_card\"]/div/div[2]/div[2]/div[3]/a")).getText();
+        String day90SelledTemp;
+        try {
+            day90SelledTemp = driver.findElement(By.xpath("//*[@id=\"sem_card\"]/div/div[2]/div[2]/div[3]/a")).getText();
+        } catch (Exception ex) {
+            day90SelledTemp = driver.findElement(By.xpath("//*[@id=\"sem_card\"]/div/div[2]/div[2]/div[3]/span")).getText();
+        }
         day90SelledTemp = day90SelledTemp.replaceAll("套", "");
         communityInfo.setDay90Selled(Integer.valueOf(transNull2Zero(day90SelledTemp)));
 

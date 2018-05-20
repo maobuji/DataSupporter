@@ -37,6 +37,25 @@ public class CommunityController {
         return result;
     }
 
+    @RequestMapping(value = "/start", method = RequestMethod.GET)
+    public String start() {
+        String name="恒星园";
+        int flush =2;
+
+        String result="";
+        CommunityInfo communityInfo = communityInfoRepository.findByName(name);
+        if (communityInfo == null) {
+            communityInfo = new CommunityInfo();
+            result="新增成功";
+        }else{
+            result="刷新成功";
+        }
+        communityInfo.setName(name);
+        communityInfo.setForceFlush(flush);
+        communityInfoRepository.save(communityInfo);
+        return result;
+    }
+
 
     @RequestMapping(value = "/test", method = RequestMethod.GET)
     public void test() {

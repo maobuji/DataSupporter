@@ -3,6 +3,7 @@ package www.lianjia.com.domian;
 import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
 import java.util.Date;
 
 /**
@@ -27,7 +28,7 @@ public class CommunityInfo {
     private int forceFlush = 3;
 
     // 小区平均价格
-    private int averagePrice;
+    private BigDecimal averagePrice;
 
     // 在售数数量
     private int onSellCount;
@@ -54,6 +55,22 @@ public class CommunityInfo {
     // 开发商
     @Column(length = 100)
     private String developer;
+
+    // 城市
+    @Column(length = 10)
+    private String city;
+
+    // 区
+    @Column(length = 10)
+    private String disrict;
+
+    // 片
+    @Column(length = 10)
+    private String section;
+
+    // 街道门牌号
+    @Column(length = 50)
+    private String site;
 
     // 小区url
     @Column(length = 80)
@@ -95,13 +112,7 @@ public class CommunityInfo {
         this.url = url;
     }
 
-    public int getAveragePrice() {
-        return averagePrice;
-    }
 
-    public void setAveragePrice(int averagePrice) {
-        this.averagePrice = averagePrice;
-    }
 
     public int getOnSellCount() {
         return onSellCount;
@@ -173,5 +184,45 @@ public class CommunityInfo {
 
     public void setDeveloper(String developer) {
         this.developer = developer;
+    }
+
+    public BigDecimal getAveragePrice() {
+        return averagePrice;
+    }
+
+    public void setAveragePrice(BigDecimal averagePrice) {
+        this.averagePrice = averagePrice;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getDisrict() {
+        return disrict;
+    }
+
+    public void setDisrict(String disrict) {
+        this.disrict = disrict;
+    }
+
+    public String getSection() {
+        return section;
+    }
+
+    public void setSection(String section) {
+        this.section = section;
+    }
+
+    public String getSite() {
+        return site;
+    }
+
+    public void setSite(String site) {
+        this.site = site;
     }
 }
