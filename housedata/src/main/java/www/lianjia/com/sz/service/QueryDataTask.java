@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import www.lianjia.com.domian.CommunityInfo;
 import www.lianjia.com.domian.HouseInfo;
 import www.lianjia.com.repository.CommunityInfoRepository;
@@ -134,8 +135,12 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
         communityInfo.setFlushTime(new Date());
 
         // 小区名
-        String name = driver.findElement(By.className("agentCardResblockTitle")).getText();
-        if (!communityInfo.getName().equalsIgnoreCase(name)) {
+        try {
+            String name = driver.findElement(By.className("agentCardResblockTitle")).getText();
+            if (!communityInfo.getName().equalsIgnoreCase(name)) {
+                return;
+            }
+        }catch (Exception ex){
             return;
         }
 
@@ -225,6 +230,7 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
 
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
+    @Transactional
     private void flushSellInfo(CommunityInfo communityInfo, WebDriver driver) {
         // 在售列表
         List<WebElement> communityOnSells = driver.findElements(By.xpath("/html/body/div[4]/div[1]/ul/li"));
@@ -429,8 +435,6 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
 
         communityInfo.setCollectCount(waitFlushHouseInfos.size());
         houseInfoRepository.saveAll(waitFlushHouseInfos);
-
-
     }
 
     private void flushGeneralInfo(CommunityInfo communityInfo, WebDriver driver) {
