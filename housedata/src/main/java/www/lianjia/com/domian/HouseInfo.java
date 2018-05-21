@@ -29,7 +29,7 @@ public class HouseInfo {
     private String communityName;
 
     // 链接地址
-    @Column(length = 100)
+    @Column(length = 100,unique=true)
     private String url;
 
     // 说明
@@ -54,7 +54,7 @@ public class HouseInfo {
     private String struct;
 
     // 朝向
-    @Column(length = 10)
+    @Column(length = 20)
     private String orientation;
 
     // 装修

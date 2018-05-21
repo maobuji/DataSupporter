@@ -395,6 +395,7 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
             }
         }
 
+        communityInfo.setCollectCount(waitFlushHouseInfos.size());
         houseInfoRepository.saveAll(waitFlushHouseInfos);
 
 

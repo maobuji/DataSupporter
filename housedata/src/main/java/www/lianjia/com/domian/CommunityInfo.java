@@ -21,7 +21,7 @@ public class CommunityInfo {
     private String id;
 
     // 小区名
-    @Column(length = 10)
+    @Column(length = 10,unique=true)
     private String name;
 
     // 强制刷新标志，0不刷新、1刷新小区信息、2刷新小区和其下所有房屋信息
@@ -32,6 +32,9 @@ public class CommunityInfo {
 
     // 在售数数量
     private int onSellCount;
+
+    // 已抓取到的数量
+    private int collectCount;
 
     // 90天成交
     private int day90Selled;
@@ -224,5 +227,13 @@ public class CommunityInfo {
 
     public void setSite(String site) {
         this.site = site;
+    }
+
+    public int getCollectCount() {
+        return collectCount;
+    }
+
+    public void setCollectCount(int collectCount) {
+        this.collectCount = collectCount;
     }
 }
