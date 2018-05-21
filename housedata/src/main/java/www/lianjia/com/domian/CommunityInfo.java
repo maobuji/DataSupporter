@@ -21,7 +21,7 @@ public class CommunityInfo {
     private String id;
 
     // 小区名
-    @Column(length = 10,unique=true)
+    @Column(length = 20,unique=true)
     private String name;
 
     // 强制刷新标志，0不刷新、1刷新小区信息、2刷新小区和其下所有房屋信息
