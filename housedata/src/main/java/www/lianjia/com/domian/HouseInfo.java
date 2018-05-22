@@ -25,7 +25,7 @@ public class HouseInfo {
     private String communityId;
 
     // 小区名
-    @Column(length = 10)
+    @Column(length = 30)
     private String communityName;
 
     // 链接地址

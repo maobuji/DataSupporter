@@ -8,23 +8,18 @@ import org.openqa.selenium.chrome.ChromeDriver;
  */
 public class WebDrivereUtil {
 
-    private static WebDriver driver;
+
 
     public static synchronized WebDriver getWebDrivere() {
         System.setProperty("webdriver.chrome.driver", "tool-repository/selenium/chromedriver.exe");
-        if (driver == null) {
-            driver = new ChromeDriver();
-        }
-        return driver;
+        return new ChromeDriver();
     }
 
-    public static synchronized void close() {
+    public static synchronized void close(WebDriver driver) {
         if (driver != null) {
             try {
                 driver.close();
-
             } catch (Exception ex) {
-
             }
             driver = null;
         }

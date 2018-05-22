@@ -28,7 +28,7 @@ import java.util.List;
 /**
  * Created by Administrator on 2018/5/15.
  */
-@Component
+//@Component
 public class QueryDataTask implements ApplicationContextAware, InitializingBean, DisposableBean {
 
     private static Logger logger = LoggerFactory.getLogger(QueryDataTask.class);
@@ -53,7 +53,6 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
-                initCommunityList();
                 while (true) {
                     try {
                         flushCommunity();
@@ -64,45 +63,15 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
             }
         });
         t.setDaemon(true);
-        t.setName("cycflushThread");
+        t.setName("QueryDataTaskThread");
         t.start();
-    }
-
-    public void initCommunityList() {
-        WebDriver driver = WebDrivereUtil.getWebDrivere();
-        for (int i = 0; i < 100; i++) {
-            System.out.println("小区列表刷新中:第"+i+"页");
-            driver.get(" https://sz.lianjia.com/xiaoqu/pg" + i + "/");
-            sleep(DRIVER_GET_WAIT_TIME);
-            String communityCount = driver.findElement(By.xpath("/html/body/div[4]/div[1]/div[2]/h2/span")).getText();
-            if ("0".equals(communityCount)) {
-                break;
-            }
-            String name ="";
-            try {
-                List<WebElement> communityList = driver.findElements(By.xpath("/html/body/div[4]/div[1]/ul/li"));
-                for (WebElement webElement : communityList) {
-                    name = webElement.findElement(By.xpath("div[1]/div[1]/a")).getText();
-                    CommunityInfo communityInfo = communityInfoRepository.findByName(name);
-                    if (communityInfo == null) {
-                        communityInfo = new CommunityInfo();
-                        communityInfo.setName(name);
-                        communityInfo.setForceFlush(2);
-                        communityInfoRepository.save(communityInfo);
-                        System.out.println("新增小区:"+name);
-                    }
-                }
-            }catch(Exception ex){
-                System.out.println("新增小区错误："+name);
-                continue;
-            }
-        }
     }
 
     public void flushCommunity() throws Exception {
         List<CommunityInfo> ls = communityInfoRepository.findNeedFlush();
+        WebDriver driver = WebDrivereUtil.getWebDrivere();
         for (CommunityInfo communityInfo : ls) {
-            flushCommunityInfo(communityInfo);
+            flushCommunityInfo(communityInfo,driver);
             communityInfo.setForceFlush(0);
             communityInfoRepository.save(communityInfo);
         }
@@ -123,9 +92,9 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
     private static long DRIVER_GET_WAIT_TIME = 1000;
 
 
-    private void flushCommunityInfo(CommunityInfo communityInfo) {
+    private void flushCommunityInfo(CommunityInfo communityInfo,WebDriver driver) {
         String url = "https://sz.lianjia.com/ershoufang/rs" + communityInfo.getName() + "/";
-        WebDriver driver = WebDrivereUtil.getWebDrivere();
+
         driver.get(url);
         sleep(DRIVER_GET_WAIT_TIME);
 
