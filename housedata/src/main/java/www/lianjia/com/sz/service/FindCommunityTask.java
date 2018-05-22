@@ -46,7 +46,7 @@ public class FindCommunityTask implements ApplicationContextAware, InitializingB
         WebDriver driver = WebDrivereUtil.getWebDrivere();
 
         List<String> queryUrls = new ArrayList<String>();
-//        queryUrls.add("https://sz.lianjia.com/xiaoqu/pg");
+        queryUrls.add("https://sz.lianjia.com/xiaoqu/pg");
         queryUrls.add("https://sz.lianjia.com/xiaoqu/luohuqu/pg");
         queryUrls.add("https://sz.lianjia.com/xiaoqu/futianqu/pg");
         queryUrls.add("https://sz.lianjia.com/xiaoqu/nanshanqu/pg");
@@ -60,8 +60,7 @@ public class FindCommunityTask implements ApplicationContextAware, InitializingB
 
         int emptyCount = 0;
         for (String queryUrl : queryUrls) {
-            for (int i = 0; i < 200; i++) {
-                System.out.println("小区列表刷新中:第" + i + "页" + "url=" + queryUrl);
+            for (int i = 0; i < 300; i++) {
                 driver.get(queryUrl + i + "/");
                 sleep(2000);
                 String name = "";
