@@ -56,14 +56,4 @@ public class CommunityController {
         return result;
     }
 
-
-    @RequestMapping(value = "/test", method = RequestMethod.GET)
-    public void test() {
-
-        List<CommunityInfo> ls= communityInfoRepository.findNeedFlush();
-        System.out.println(ls.size());
-
-    }
-
-
 }

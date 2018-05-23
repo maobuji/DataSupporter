@@ -1,5 +1,6 @@
 package www.lianjia.com.repository;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
@@ -18,6 +19,6 @@ public interface CommunityInfoRepository extends CrudRepository<CommunityInfo,St
     public CommunityInfo findByName(String name);
 
     @Query(value = "select c from CommunityInfo c where forceFlush<>0")
-    List<CommunityInfo> findNeedFlush();
+    List<CommunityInfo> findNeedFlush(Pageable pageable);
 
 }

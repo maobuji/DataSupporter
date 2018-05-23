@@ -11,6 +11,9 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import www.lianjia.com.domian.CommunityInfo;
@@ -28,7 +31,7 @@ import java.util.List;
 /**
  * Created by Administrator on 2018/5/15.
  */
-//@Component
+@Component
 public class QueryDataTask implements ApplicationContextAware, InitializingBean, DisposableBean {
 
     private static Logger logger = LoggerFactory.getLogger(QueryDataTask.class);
@@ -50,27 +53,38 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
     @Override
     public void afterPropertiesSet() throws Exception {
 
-        Thread t = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (true) {
-                    try {
-                        flushCommunity();
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
+        final int threadCount=5;
+        for(int i=1;i<threadCount+1;i++) {
+            final int number=i;
+            WebDriver driver = WebDrivereUtil.getWebDrivere();
+            Thread t = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    while (true) {
+                        try {
+
+                            flushCommunity(number,threadCount,driver);
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
                     }
                 }
-            }
-        });
-        t.setDaemon(true);
-        t.setName("QueryDataTaskThread");
-        t.start();
+            });
+            t.setDaemon(true);
+            t.setName("QueryDataTaskThread"+i);
+            t.start();
+        }
     }
 
-    public void flushCommunity() throws Exception {
-        List<CommunityInfo> ls = communityInfoRepository.findNeedFlush();
-        WebDriver driver = WebDrivereUtil.getWebDrivere();
+    public void flushCommunity(int number,int threadCount,WebDriver driver) throws Exception {
+        List<CommunityInfo> ls = communityInfoRepository.findNeedFlush(PageRequest.of(0,50));
         for (CommunityInfo communityInfo : ls) {
+            String uuid=communityInfo.getId();
+            int myInt=Integer.valueOf(uuid.charAt(uuid.length()-1)).intValue();
+            if(myInt%threadCount!=(number-1)){
+                continue;
+            }
+            System.out.println("Thread"+number+":"+communityInfo.getName());
             flushCommunityInfo(communityInfo,driver);
             communityInfo.setForceFlush(0);
             communityInfoRepository.save(communityInfo);
@@ -89,50 +103,48 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
         }
     }
 
-    private static long DRIVER_GET_WAIT_TIME = 1000;
+    private static long DRIVER_GET_WAIT_TIME = 500;
 
 
     private void flushCommunityInfo(CommunityInfo communityInfo,WebDriver driver) {
-        String url = "https://sz.lianjia.com/ershoufang/rs" + communityInfo.getName() + "/";
 
-        driver.get(url);
-        sleep(DRIVER_GET_WAIT_TIME);
-
-
-        // 获取小区总体说明
         communityInfo.setCity("深圳");
         communityInfo.setFlushTime(new Date());
-
-        // 小区名
-        try {
-            String name = driver.findElement(By.className("agentCardResblockTitle")).getText();
-            if (!communityInfo.getName().equalsIgnoreCase(name)) {
-                return;
-            }
-        }catch (Exception ex){
-            return;
-        }
-
-        // 获取小区的一般信息
-        flushGeneralInfo(communityInfo, driver);
-        System.out.println("小区：" + communityInfo.getName() + " 在售数量" + communityInfo.getOnSellCount() + "**************");
-
-        // 获取推荐小区
-        flushRecommendInfo(communityInfo, driver);
-
-        // 获取小区在售房源
-        if (communityInfo.getForceFlush() != 0 && communityInfo.getForceFlush() != 1) {
-            flushSellInfo(communityInfo, driver);
-        }
 
         // 获取小区详细信息
         flushGeneralDetail(communityInfo, driver);
 
+        int houseCount=0;
+
+        // 获取小区总体说明
+        for(int i=1;i<20;i++){
+            String url="https://sz.lianjia.com/ershoufang/pg"+i+"rs"+communityInfo.getName() + "/";
+            driver.get(url);
+            sleep(DRIVER_GET_WAIT_TIME);
+
+            if(i==1){
+                // 获取小区的一般信息
+                flushGeneralInfo(communityInfo, driver);
+                System.out.println("小区：" + communityInfo.getName() + " 在售数量" + communityInfo.getOnSellCount() + "**************");
+            }
+
+            // 获取推荐小区
+            flushRecommendInfo(communityInfo, driver);
+
+            // 获取小区在售房源
+            int sellCount=flushSellInfo(communityInfo, driver);
+            houseCount=houseCount+sellCount;
+            if(sellCount<30){
+                break;
+            }
+        }
+
+        communityInfo.setCollectCount(houseCount);
 
     }
 
     private void flushGeneralDetail(CommunityInfo communityInfo, WebDriver driver) {
-        if (communityInfo.getBuildType() != null && !communityInfo.equals("")) {
+        if (communityInfo.getBuildType() != null && !communityInfo.getDeveloper().equals("")) {
             return;
         }
         driver.get(communityInfo.getUrl());
@@ -174,7 +186,7 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
     private void flushRecommendInfo(CommunityInfo communityInfo, WebDriver driver) {
         // 推荐列表
         List<WebElement> communityRecommends = driver.findElements(By.xpath("//*[@id=\"lessResultIds\"]/div/ul/li"));
-        System.out.println("推荐条数：" + communityRecommends.size());
+        System.out.println("****************推荐条数：" + communityRecommends.size());
 
         for (WebElement recommendElement : communityRecommends) {
             // 描述信息：恒星园4房，一手业主红本手 观小区花园 视野开阔
@@ -186,24 +198,20 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
             String[] tag = tags.split("/");
             String cName = tag[0].trim();
 
-            // 如果小区不存在，则将小区加入到查询列表中
-            CommunityInfo newCommunityInfo = communityInfoRepository.findByName(cName);
-            if (newCommunityInfo == null) {
-                newCommunityInfo = new CommunityInfo();
-                newCommunityInfo.setName(cName);
-                newCommunityInfo.setForceFlush(3);
-                communityInfoRepository.save(newCommunityInfo);
-            }
+            // TODO url
+            communityAddCheck(cName,"");
         }
     }
 
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
+
+
     @Transactional
-    private void flushSellInfo(CommunityInfo communityInfo, WebDriver driver) {
+    private int flushSellInfo(CommunityInfo communityInfo, WebDriver driver) {
         // 在售列表
         List<WebElement> communityOnSells = driver.findElements(By.xpath("/html/body/div[4]/div[1]/ul/li"));
-        System.out.println("在售条数：" + communityOnSells.size());
+        System.out.println("****************在售条数：" + communityOnSells.size());
 
         List<HouseInfo> waitFlushHouseInfos = new ArrayList<HouseInfo>();
 
@@ -214,15 +222,10 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
 
             try {
                 String name = singleOnSellElement.findElement(By.xpath("div[1]/div[2]/div/a")).getText();
+                String comUrl=singleOnSellElement.findElement(By.xpath("div[1]/div[2]/div/a")).getAttribute("href");
                 if (!communityInfo.getName().equals(name)) {
                     // 如果小区不存在，则将小区加入到查询列表中
-                    CommunityInfo newCommunityInfo = communityInfoRepository.findByName(name);
-                    if (newCommunityInfo == null) {
-                        newCommunityInfo = new CommunityInfo();
-                        newCommunityInfo.setName(name);
-                        newCommunityInfo.setForceFlush(3);
-                        communityInfoRepository.save(newCommunityInfo);
-                    }
+                    communityAddCheck(name,comUrl);
                     continue;
                 }
 
@@ -355,7 +358,9 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
                 // 挂牌时间:2017-02-21
                 if (text.startsWith("挂牌时间")) {
                     try {
-                        houseInfo.setSubmitDay(sdf.parse(textValue));
+                        if(textValue.length()==10) {
+                            houseInfo.setSubmitDay(sdf.parse(textValue));
+                        }
                     } catch (Exception ex) {
 
                     }
@@ -365,7 +370,9 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
                 // 上次交易:2009-08-03
                 if (text.startsWith("上次交易")) {
                     try {
-                        houseInfo.setLastSelledDay(sdf.parse(textValue));
+                        if(textValue.length()==10) {
+                            houseInfo.setLastSelledDay(sdf.parse(textValue));
+                        }
                     } catch (Exception ex) {
 
                     }
@@ -401,16 +408,20 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
                 // 房源编码:170343231614
             }
         }
-
-        communityInfo.setCollectCount(waitFlushHouseInfos.size());
         houseInfoRepository.saveAll(waitFlushHouseInfos);
+        return waitFlushHouseInfos.size();
     }
 
     private void flushGeneralInfo(CommunityInfo communityInfo, WebDriver driver) {
-        // 小区明细信息的url：https://sz.lianjia.com/xiaoqu/2411048917573/
-        String urlTemp = driver.findElement(By.className("agentCardResblockTitle")).getAttribute("href");
-        communityInfo.setUrl(urlTemp);
 
+        try {
+            String name = driver.findElement(By.className("agentCardResblockTitle")).getText();
+            if (!communityInfo.getName().equalsIgnoreCase(name)) {
+                return;
+            }
+        }catch (Exception ex){
+            return;
+        }
         // 小区平均价格:121746元/平米
         String averagePriceTemp;
         try {
@@ -448,6 +459,17 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
             s = "0";
         }
         return s;
+    }
+
+    private void communityAddCheck(String name,String url){
+        CommunityInfo newCommunityInfo = communityInfoRepository.findByName(name);
+        if (newCommunityInfo == null) {
+            newCommunityInfo = new CommunityInfo();
+            newCommunityInfo.setName(name);
+            newCommunityInfo.setName(url);
+            newCommunityInfo.setForceFlush(1);
+            communityInfoRepository.save(newCommunityInfo);
+        }
     }
 
     @Override

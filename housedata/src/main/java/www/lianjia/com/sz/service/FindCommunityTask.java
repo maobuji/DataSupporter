@@ -20,7 +20,7 @@ import java.util.List;
 /**
  * Created by Administrator on 2018/5/22.
  */
-@Component
+//@Component
 public class FindCommunityTask implements ApplicationContextAware, InitializingBean, DisposableBean {
 
     private ApplicationContext applicationContext;
@@ -38,7 +38,7 @@ public class FindCommunityTask implements ApplicationContextAware, InitializingB
             }
         });
         t.setDaemon(true);
-        t.setName("QueryDataTaskThread");
+        t.setName("FindCommunityTaskThread");
         t.start();
     }
 
@@ -66,7 +66,7 @@ public class FindCommunityTask implements ApplicationContextAware, InitializingB
                 String name = "";
                 try {
                     List<WebElement> communityList = driver.findElements(By.xpath("/html/body/div[4]/div[1]/ul/li"));
-                    if (communityList.size() != 0) {
+                    if (communityList.size() == 30) {
                         emptyCount = 0;
                     } else {
                         emptyCount++;
@@ -77,11 +77,13 @@ public class FindCommunityTask implements ApplicationContextAware, InitializingB
                     }
                     for (WebElement webElement : communityList) {
                         name = webElement.findElement(By.xpath("div[1]/div[1]/a")).getText();
+                        String url=webElement.findElement(By.xpath("div[1]/div[1]/a")).getAttribute("href");
                         CommunityInfo communityInfo = communityInfoRepository.findByName(name);
                         if (communityInfo == null) {
                             communityInfo = new CommunityInfo();
                             communityInfo.setName(name);
-                            communityInfo.setForceFlush(2);
+                            communityInfo.setUrl(url);
+                            communityInfo.setForceFlush(1);
                             communityInfoRepository.save(communityInfo);
                             System.out.println("新增小区:" + name);
                         }
@@ -92,6 +94,7 @@ public class FindCommunityTask implements ApplicationContextAware, InitializingB
                 }
             }
         }
+        driver.close();
     }
 
 
