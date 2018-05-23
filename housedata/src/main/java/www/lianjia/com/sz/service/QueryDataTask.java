@@ -53,9 +53,9 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
     @Override
     public void afterPropertiesSet() throws Exception {
 
-        final int threadCount=5;
-        for(int i=1;i<threadCount+1;i++) {
-            final int number=i;
+        final int threadCount = 5;
+        for (int i = 1; i < threadCount + 1; i++) {
+            final int number = i;
             WebDriver driver = WebDrivereUtil.getWebDrivere();
             Thread t = new Thread(new Runnable() {
                 @Override
@@ -63,7 +63,7 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
                     while (true) {
                         try {
 
-                            flushCommunity(number,threadCount,driver);
+                            flushCommunity(number, threadCount, driver);
                         } catch (Exception ex) {
                             ex.printStackTrace();
                         }
@@ -71,21 +71,23 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
                 }
             });
             t.setDaemon(true);
-            t.setName("QueryDataTaskThread"+i);
+            t.setName("QueryDataTaskThread" + i);
             t.start();
         }
     }
 
-    public void flushCommunity(int number,int threadCount,WebDriver driver) throws Exception {
-        List<CommunityInfo> ls = communityInfoRepository.findNeedFlush(PageRequest.of(0,50));
+    public void flushCommunity(int number, int threadCount, WebDriver driver) throws Exception {
+        List<CommunityInfo> ls = communityInfoRepository.findNeedFlush(PageRequest.of(0, 50));
         for (CommunityInfo communityInfo : ls) {
-            String uuid=communityInfo.getId();
-            int myInt=Integer.valueOf(uuid.charAt(uuid.length()-1)).intValue();
-            if(myInt%threadCount!=(number-1)){
-                continue;
+            if (threadCount > 1) {
+                String uuid = communityInfo.getId();
+                int myInt = Integer.valueOf(uuid.charAt(uuid.length() - 1)).intValue();
+                if (myInt % threadCount != (number - 1)) {
+                    continue;
+                }
             }
-            System.out.println("Thread"+number+":"+communityInfo.getName());
-            flushCommunityInfo(communityInfo,driver);
+            System.out.println("Thread" + number + ":" + communityInfo.getName());
+            flushCommunityInfo(communityInfo, driver);
             communityInfo.setForceFlush(0);
             communityInfoRepository.save(communityInfo);
         }
@@ -106,7 +108,7 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
     private static long DRIVER_GET_WAIT_TIME = 500;
 
 
-    private void flushCommunityInfo(CommunityInfo communityInfo,WebDriver driver) {
+    private void flushCommunityInfo(CommunityInfo communityInfo, WebDriver driver) {
 
         communityInfo.setCity("深圳");
         communityInfo.setFlushTime(new Date());
@@ -114,15 +116,15 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
         // 获取小区详细信息
         flushGeneralDetail(communityInfo, driver);
 
-        int houseCount=0;
+        int houseCount = 0;
 
         // 获取小区总体说明
-        for(int i=1;i<20;i++){
-            String url="https://sz.lianjia.com/ershoufang/pg"+i+"rs"+communityInfo.getName() + "/";
+        for (int i = 1; i < 20; i++) {
+            String url = "https://sz.lianjia.com/ershoufang/pg" + i + "rs" + communityInfo.getName() + "/";
             driver.get(url);
             sleep(DRIVER_GET_WAIT_TIME);
 
-            if(i==1){
+            if (i == 1) {
                 // 获取小区的一般信息
                 flushGeneralInfo(communityInfo, driver);
                 System.out.println("小区：" + communityInfo.getName() + " 在售数量" + communityInfo.getOnSellCount() + "**************");
@@ -132,9 +134,9 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
             flushRecommendInfo(communityInfo, driver);
 
             // 获取小区在售房源
-            int sellCount=flushSellInfo(communityInfo, driver);
-            houseCount=houseCount+sellCount;
-            if(sellCount<30){
+            int sellCount = flushSellInfo(communityInfo, driver);
+            houseCount = houseCount + sellCount;
+            if (sellCount < 30) {
                 break;
             }
         }
@@ -199,12 +201,11 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
             String cName = tag[0].trim();
 
             // TODO url
-            communityAddCheck(cName,"");
+            communityAddCheck(cName, "");
         }
     }
 
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-
 
 
     @Transactional
@@ -222,10 +223,10 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
 
             try {
                 String name = singleOnSellElement.findElement(By.xpath("div[1]/div[2]/div/a")).getText();
-                String comUrl=singleOnSellElement.findElement(By.xpath("div[1]/div[2]/div/a")).getAttribute("href");
+                String comUrl = singleOnSellElement.findElement(By.xpath("div[1]/div[2]/div/a")).getAttribute("href");
                 if (!communityInfo.getName().equals(name)) {
                     // 如果小区不存在，则将小区加入到查询列表中
-                    communityAddCheck(name,comUrl);
+                    communityAddCheck(name, comUrl);
                     continue;
                 }
 
@@ -358,7 +359,7 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
                 // 挂牌时间:2017-02-21
                 if (text.startsWith("挂牌时间")) {
                     try {
-                        if(textValue.length()==10) {
+                        if (textValue.length() == 10) {
                             houseInfo.setSubmitDay(sdf.parse(textValue));
                         }
                     } catch (Exception ex) {
@@ -370,7 +371,7 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
                 // 上次交易:2009-08-03
                 if (text.startsWith("上次交易")) {
                     try {
-                        if(textValue.length()==10) {
+                        if (textValue.length() == 10) {
                             houseInfo.setLastSelledDay(sdf.parse(textValue));
                         }
                     } catch (Exception ex) {
@@ -419,7 +420,7 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
             if (!communityInfo.getName().equalsIgnoreCase(name)) {
                 return;
             }
-        }catch (Exception ex){
+        } catch (Exception ex) {
             return;
         }
         // 小区平均价格:121746元/平米
@@ -461,7 +462,7 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
         return s;
     }
 
-    private void communityAddCheck(String name,String url){
+    private void communityAddCheck(String name, String url) {
         CommunityInfo newCommunityInfo = communityInfoRepository.findByName(name);
         if (newCommunityInfo == null) {
             newCommunityInfo = new CommunityInfo();
