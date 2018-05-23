@@ -53,7 +53,7 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
     @Override
     public void afterPropertiesSet() throws Exception {
 
-        final int threadCount = 5;
+        final int threadCount = 1;
         for (int i = 1; i < threadCount + 1; i++) {
             final int number = i;
             WebDriver driver = WebDrivereUtil.getWebDrivere();
