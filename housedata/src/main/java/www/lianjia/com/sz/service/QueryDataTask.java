@@ -131,7 +131,7 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
             }
 
             // 获取推荐小区
-            flushRecommendInfo(communityInfo, driver);
+//            flushRecommendInfo(communityInfo, driver);
 
             // 获取小区在售房源
             int sellCount = flushSellInfo(communityInfo, driver);
@@ -152,7 +152,9 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
         driver.get(communityInfo.getUrl());
         sleep(DRIVER_GET_WAIT_TIME);
 
+        // 从页面“XXX地方”拿到地址信息
         String address = driver.findElement(By.xpath("/html/body/div[4]/div/div[1]/div")).getText();
+        // 将地址信息中的“区”字样去掉
         String disrict = address.substring(1, address.indexOf("区") + 1);
         communityInfo.setDisrict(disrict);
         String section = address.substring(address.indexOf("区") + 1, address.indexOf(")"));
@@ -164,7 +166,12 @@ public class QueryDataTask implements ApplicationContextAware, InitializingBean,
         // 建筑年代:2007年建成
         String buildYearTemp = driver.findElement(By.xpath("/html/body/div[6]/div[2]/div[2]/div[1]/span[2]")).getText();
         buildYearTemp = buildYearTemp.replaceAll("年建成", "");
-        communityInfo.setBuildYear(Integer.valueOf(transNull2Zero(buildYearTemp)));
+        try {
+            communityInfo.setBuildYear(Integer.valueOf(transNull2Zero(buildYearTemp)));
+        }catch (Exception ex){
+
+        }
+
 
         // 建筑类型：板楼
         String buildTypeTemp = driver.findElement(By.xpath("/html/body/div[6]/div[2]/div[2]/div[2]/span[2]")).getText();

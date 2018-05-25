@@ -78,6 +78,15 @@ public class FindCommunityTask implements ApplicationContextAware, InitializingB
                     for (WebElement webElement : communityList) {
                         name = webElement.findElement(By.xpath("div[1]/div[1]/a")).getText();
                         String url=webElement.findElement(By.xpath("div[1]/div[1]/a")).getAttribute("href");
+
+                        if(name.equals("侨城一号广场")){
+                            continue;
+                        }
+
+                        if(name.equals("朗泓龙园大观")){
+                            continue;
+                        }
+
                         CommunityInfo communityInfo = communityInfoRepository.findByName(name);
                         if (communityInfo == null) {
                             communityInfo = new CommunityInfo();
